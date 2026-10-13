@@ -1,0 +1,37 @@
+# ============================================================
+# EJERCICIO 5 - Filtros de rama y ruta
+# ------------------------------------------------------------
+# Objetivo: activarse SOLO con un push a la rama "develop"
+# Y SOLO si el push cambia algo dentro de la carpeta docs/.
+#
+# Cuando pones "branches" y "paths" en el mismo evento, se tienen
+# que cumplir LOS DOS (es un AND):
+#   - push a main tocando docs/       -> NO se ejecuta (rama incorrecta)
+#   - push a develop tocando README   -> NO se ejecuta (ruta incorrecta)
+#   - push a develop tocando docs/x   -> SÍ se ejecuta
+#
+# Para probarlo:
+#   git checkout -b develop
+#   (edita docs/README.md)  git commit -am "docs" && git push -u origin develop
+# ============================================================
+name: "05 - Filtros de rama y ruta"
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - "docs/**" # ** = cualquier archivo en cualquier subcarpeta de docs/
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4
+
+      - name: "Informar del cambio"
+        run: |
+          echo "Push en la rama: ${{ github.ref_name }}"
+          echo "Se han modificado archivos dentro de docs/"
+          ls -la docs

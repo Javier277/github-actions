@@ -1,0 +1,35 @@
+# ============================================================
+# EJERCICIO 8 - Programación temporal (cron)
+# ------------------------------------------------------------
+# Objetivo: ejecutarse automáticamente todos los lunes a las 9:00.
+#
+# Formato cron: 5 campos separados por espacios
+#   ┌──────── minuto        (0-59)
+#   │ ┌────── hora          (0-23)
+#   │ │ ┌──── día del mes   (1-31)
+#   │ │ │ ┌── mes           (1-12)
+#   │ │ │ │ ┌ día semana    (0-6, 0 = domingo, 1 = lunes)
+#   0 9 * * 1   -> minuto 0, hora 9, cualquier día/mes, solo lunes
+#
+# IMPORTANTE: GitHub usa hora UTC. Las 9:00 UTC son las 10:00 en
+# España en invierno y las 11:00 en verano. Si quieres las 9:00
+# hora española pon "0 8 * * 1" (invierno) o "0 7 * * 1" (verano).
+# Además, el cron solo funciona en la rama por defecto (main) y
+# puede retrasarse unos minutos si GitHub va cargado.
+# ============================================================
+name: "08 - Cron lunes 9:00"
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch: # para poder probarlo sin esperar al lunes
+
+jobs:
+  tarea_semanal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Tarea programada"
+        run: |
+          echo "Evento que lo ha lanzado: ${{ github.event_name }}"
+          echo "Fecha y hora (UTC): $(date -u)"
+          echo "¡Buen lunes! Aquí iría el informe semanal."

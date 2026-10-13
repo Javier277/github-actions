@@ -1,0 +1,44 @@
+# ============================================================
+# EJERCICIO 1 - Variables de entorno globales
+# ------------------------------------------------------------
+# Objetivo: definir una variable a nivel de WORKFLOW y usarla
+# en dos jobs distintos.
+#
+# Niveles donde se puede declarar "env:":
+#   - workflow (aquí, arriba del todo) -> la ven TODOS los jobs
+#   - job                              -> solo ese job
+#   - step                             -> solo ese step
+# Si se repite el nombre, gana el nivel más específico (step > job > workflow).
+# ============================================================
+name: "01 - Variables de entorno globales"
+
+on:
+  workflow_dispatch: # Se lanza a mano desde la pestaña "Actions"
+
+# Variable GLOBAL: disponible en todos los jobs y steps.
+# OJO: usa guiones bajos, no guiones. En bash "$GLOBAL-APP-NAME"
+# no es una variable válida, por eso el nombre es GLOBAL_APP_NAME.
+env:
+  GLOBAL_APP_NAME: "Plataformadegestion"
+
+jobs:
+  job_backend:
+    name: "Job Backend"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Imprimir variable en Backend"
+        run: |
+          echo "Accediendo a la variable desde el Job 1:"
+          # Forma 1: como variable de entorno de bash ($NOMBRE)
+          echo "Nombre de la app: $GLOBAL_APP_NAME"
+
+  job_frontend:
+    name: "Job Frontend"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Imprimir variable en Frontend"
+        run: |
+          echo "Accediendo a la variable desde el Job 2:"
+          # Forma 2: con la sintaxis de expresiones de GitHub (dobles llaves + env.).
+          # GitHub sustituye el valor ANTES de ejecutar el script.
+          echo "Nombre de la app: ${{ env.GLOBAL_APP_NAME }}"

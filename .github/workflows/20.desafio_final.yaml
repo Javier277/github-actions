@@ -1,0 +1,103 @@
+# ============================================================
+# DESAFÍO FINAL - Pipeline de datos seguro y automatizado
+# ------------------------------------------------------------
+# Flujo:
+#   [ci_seguridad] --> [procesamiento x2 (staging, production)] --> [notificacion]
+#
+# Combina casi todo lo visto: inputs manuales, condicionales,
+# matrices, artefactos, dependencias entre jobs y secretos.
+#
+# Requisito previo: crear el secreto DISCORD_WEBHOOK en
+# Settings > Secrets and variables > Actions (vale cualquier URL inventada).
+# ============================================================
+name: "20 - Desafío final: pipeline de datos"
+
+on:
+  workflow_dispatch:
+    # "inputs" crea un formulario al pulsar "Run workflow"
+    inputs:
+      tests_seguridad:
+        description: "¿Ejecutar los Tests de Seguridad?"
+        type: choice # desplegable con opciones cerradas
+        options:
+          - "sí"
+          - "no"
+        default: "sí"
+
+jobs:
+  # ---------------------------------------------------------
+  # JOB 1: validar el JSON y, opcionalmente, escanear secretos
+  # ---------------------------------------------------------
+  ci_seguridad:
+    name: "CI & Seguridad"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4
+
+      - name: "Validar que ventas.json es un JSON válido"
+        # json.tool parsea el fichero; si la sintaxis es incorrecta
+        # devuelve error y el job falla.
+        run: |
+          python3 -m json.tool ventas.json > /dev/null
+          echo "ventas.json es un JSON válido"
+
+      - name: "Escaneo de seguridad (claves API expuestas)"
+        # Condicional: solo si en el formulario se eligió "sí".
+        # Los inputs se leen con inputs.<nombre>.
+        if: inputs.tests_seguridad == 'sí'
+        run: python3 scripts/security_scan.py
+
+  # ---------------------------------------------------------
+  # JOB 2: procesar en dos entornos con una matriz
+  # ---------------------------------------------------------
+  procesamiento:
+    name: "Procesamiento - ${{ matrix.entorno }}"
+    runs-on: ubuntu-latest
+    needs: ci_seguridad # no empieza hasta que el Job 1 termine bien
+    strategy:
+      matrix:
+        entorno: [staging, production] # se crean 2 jobs en paralelo
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4
+
+      - name: "Generar reporte de ${{ matrix.entorno }}"
+        # jq suma los importes del JSON. Cada entorno genera SU propio fichero
+        # porque el nombre lleva ${{ matrix.entorno }}.
+        run: |
+          TOTAL=$(jq '[.ventas[].importe] | add' ventas.json)
+          NUM=$(jq '.ventas | length' ventas.json)
+          {
+            echo "REPORTE DE VENTAS - ENTORNO: ${{ matrix.entorno }}"
+            echo "Fecha: $(date -u)"
+            echo "Número de ventas: $NUM"
+            echo "Importe total: $TOTAL EUR"
+          } > reporte-${{ matrix.entorno }}.txt
+          cat reporte-${{ matrix.entorno }}.txt
+
+      - name: "Subir reporte como artefacto"
+        uses: actions/upload-artifact@v4
+        with:
+          # El nombre del artefacto debe ser ÚNICO por cada ejecución de la
+          # matriz; si los dos se llamaran igual, el segundo daría error.
+          name: reporte-${{ matrix.entorno }}
+          path: reporte-${{ matrix.entorno }}.txt
+
+  # ---------------------------------------------------------
+  # JOB 3: notificar solo si todo lo anterior fue bien
+  # ---------------------------------------------------------
+  notificacion:
+    name: "Notificación de éxito"
+    runs-on: ubuntu-latest
+    needs: [ci_seguridad, procesamiento] # espera a los dos jobs anteriores
+    if: success() # solo si todos los "needs" terminaron con éxito
+    steps:
+      - name: "Enviar notificación a Discord (simulado)"
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          # En la vida real haríamos: curl -X POST -d '{...}' "$WEBHOOK"
+          # Aquí solo lo imprimimos: GitHub lo mostrará como "***".
+          echo "Enviando notificación al webhook: $WEBHOOK"
+          echo "Pipeline completado. Reportes disponibles como artefactos."

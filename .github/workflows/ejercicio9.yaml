@@ -1,0 +1,59 @@
+# ============================================================
+# EJERCICIO 9 - Contenedores de servicio (Postgres)
+# ------------------------------------------------------------
+# Objetivo: levantar una base de datos Postgres como "servicio"
+# y comprobar que podemos conectarnos.
+#
+# Un "service container" es un contenedor Docker que GitHub arranca
+# ANTES de los steps y que vive mientras dura el job. Es ideal para
+# tests que necesitan una base de datos, Redis, etc.
+# ============================================================
+name: "09 - Contenedor de servicio Postgres"
+
+on:
+  workflow_dispatch:
+
+# Variables a nivel de workflow: las usan tanto el contenedor
+# (para crear usuario/BD) como los steps (para conectarse).
+env:
+  POSTGRES_USER: alumno
+  POSTGRES_PASSWORD: edem2026 # en un proyecto real esto iría en un secret
+  POSTGRES_DB: cursodb
+
+jobs:
+  test_db:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres: # nombre del servicio
+        image: postgres:16 # imagen oficial de Docker Hub
+        # La imagen de Postgres lee estas 3 variables al arrancar
+        # para crear el usuario, su contraseña y la base de datos.
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        # Publicamos el puerto 5432 del contenedor en el 5432 del runner
+        ports:
+          - 5432:5432
+        # Health check: GitHub espera a que Postgres responda
+        # antes de empezar los steps (si no, nos conectaríamos demasiado pronto)
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: "Comprobar que Postgres acepta conexiones"
+        # pg_isready y psql ya vienen instalados en ubuntu-latest
+        run: pg_isready -h localhost -p 5432 -U "$POSTGRES_USER"
+
+      - name: "Hacer una consulta real"
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }} # psql lee la contraseña de aquí
+        run: |
+          psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();"
+          psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE TABLE alumnos (id SERIAL, nombre TEXT);"
+          psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "INSERT INTO alumnos (nombre) VALUES ('Javier');"
+          psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT * FROM alumnos;"

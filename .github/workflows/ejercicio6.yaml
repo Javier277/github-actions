@@ -1,0 +1,38 @@
+# ============================================================
+# EJERCICIO 6 - Validación de JSON con una acción de la comunidad
+# ------------------------------------------------------------
+# Objetivo: validar que data.json (en la raíz del repo) tiene un
+# formato JSON correcto, usando una acción del Marketplace.
+#
+# "uses: usuario/repo@version" ejecuta una acción hecha por otra
+# persona. Aquí usamos limitusus/json-syntax-check, que revisa la
+# sintaxis de los ficheros cuyo nombre encaje con "pattern".
+# Si el JSON está mal (falta una coma, una llave...) el job falla.
+# ============================================================
+name: "06 - Validación de JSON"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "data.json" # también se lanza solo cuando alguien cambia data.json
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4 # sin checkout la máquina está vacía y no hay data.json
+
+      - name: "Validar sintaxis de data.json (acción de la comunidad)"
+        uses: limitusus/json-syntax-check@v2
+        with:
+          pattern: "^data\\.json$" # expresión regular: solo el fichero data.json
+
+      - name: "Comprobar que tiene las claves obligatorias"
+        # Paso extra: además de sintaxis válida, exigimos curso, modulo y alumnos.
+        # jq viene instalado en los runners de ubuntu.
+        # "-e" hace que jq devuelva error si el resultado es false.
+        run: |
+          jq -e 'has("curso") and has("modulo") and has("alumnos")' data.json
+          echo "data.json es válido y tiene las claves curso, modulo y alumnos"

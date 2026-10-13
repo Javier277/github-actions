@@ -1,0 +1,42 @@
+# ============================================================
+# EJERCICIO 4 - Artefactos de construcción
+# ------------------------------------------------------------
+# Objetivo: el Job 1 crea un .txt y el Job 2 lo descarga y lo lee.
+#
+# Clave: cada job corre en una MÁQUINA DISTINTA, no comparten disco.
+# Para pasar ficheros entre jobs hay que:
+#   1. Subirlos como "artefacto" (actions/upload-artifact)
+#   2. Descargarlos en el otro job (actions/download-artifact)
+# Además los artefactos quedan descargables en la página del run.
+# ============================================================
+name: "04 - Artefactos de construcción"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generar:
+    name: "Job 1 - Generar archivo"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Crear mensaje.txt"
+        run: echo "Hola desde el Job 1, generado el $(date)" > mensaje.txt
+
+      - name: "Subir el archivo como artefacto"
+        uses: actions/upload-artifact@v4
+        with:
+          name: mi-mensaje   # nombre del artefacto (lo usaremos para descargarlo)
+          path: mensaje.txt  # qué fichero(s) subir
+
+  leer:
+    name: "Job 2 - Leer archivo"
+    runs-on: ubuntu-latest
+    needs: generar # espera a que termine "generar"; si no, el artefacto aún no existe
+    steps:
+      - name: "Descargar el artefacto"
+        uses: actions/download-artifact@v4
+        with:
+          name: mi-mensaje # mismo nombre que al subirlo
+
+      - name: "Mostrar contenido"
+        run: cat mensaje.txt

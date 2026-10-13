@@ -1,0 +1,39 @@
+# ============================================================
+# EJERCICIO 2 - Manejo de secretos
+# ------------------------------------------------------------
+# Objetivo: simular un login usando un "Secret" de GitHub.
+#
+# ANTES de ejecutarlo crea el secreto en el repo:
+#   Settings > Secrets and variables > Actions > New repository secret
+#   Name: APP_PASSWORD   Value: lo que quieras (ej. superclave123)
+#
+# GitHub ENMASCARA automáticamente cualquier secreto en los logs:
+# si intentas imprimirlo verás "***" en lugar del valor real.
+# ============================================================
+name: "02 - Manejo de secretos"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Simular login con secreto"
+        # Pasamos el secreto a una variable de entorno SOLO de este step.
+        # Es la forma recomendada: así no aparece escrito en el script.
+        env:
+          USUARIO: "admin"
+          PASS: ${{ secrets.APP_PASSWORD }}
+        run: |
+          # Comprobamos que el secreto existe (si no está creado llega vacío)
+          if [ -z "$PASS" ]; then
+            echo "ERROR: crea el secreto APP_PASSWORD en Settings > Secrets"
+            exit 1
+          fi
+
+          echo "Usuario: $USUARIO"
+          # Aunque lo imprimamos, en el log saldrá "***"
+          echo "Password (enmascarada): $PASS"
+          echo "Longitud de la password: ${#PASS} caracteres"
+          echo "Login simulado correctamente"

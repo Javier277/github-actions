@@ -1,0 +1,42 @@
+# ============================================================
+# EJERCICIO 7 - Salidas entre jobs (outputs)
+# ------------------------------------------------------------
+# Objetivo: el Job A genera un número aleatorio y se lo pasa al Job B.
+#
+# El camino del dato tiene 3 saltos:
+#   1. Un STEP escribe "clave=valor" en el fichero $GITHUB_OUTPUT
+#      -> queda en steps.<id-del-step>.outputs.clave
+#   2. El JOB lo expone en su bloque "outputs:"
+#      -> queda en needs.<job>.outputs.clave
+#   3. El otro job declara "needs: <job>" y lo lee con needs.<job>.outputs.clave
+# ============================================================
+name: "07 - Outputs entre jobs"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  job_a:
+    name: "Job A - Generar número"
+    runs-on: ubuntu-latest
+    # Paso 2: el job "publica" el output del step para que otros jobs lo vean
+    outputs:
+      numero: ${{ steps.generar.outputs.numero }}
+    steps:
+      - name: "Generar número aleatorio"
+        id: generar # el id es necesario para referenciar este step
+        run: |
+          # $RANDOM es una variable de bash que da un número entre 0 y 32767
+          NUMERO=$RANDOM
+          echo "Número generado: $NUMERO"
+          # Paso 1: guardamos el valor como output del step
+          echo "numero=$NUMERO" >> "$GITHUB_OUTPUT"
+
+  job_b:
+    name: "Job B - Recibir número"
+    runs-on: ubuntu-latest
+    needs: job_a # obligatorio para poder leer los outputs de job_a
+    steps:
+      - name: "Mostrar número recibido"
+        # Paso 3: leemos el output a través de "needs"
+        run: echo "El Job A me ha pasado el número ${{ needs.job_a.outputs.numero }}"

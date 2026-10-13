@@ -3,6 +3,7 @@ Este documento contiene 10 ejercicios diseñados para dominar la automatización
 
 1. Variables de Entorno Globales: Crea un workflow que defina una variable de entorno a nivel de workflow y la use en dos jobs distintos.
 
+
 2. Manejo de Secretos: Simula un login. Usa un "Secreto" de GitHub para ocultar una contraseña y mostrarla de forma segura (enmascarada) en el log.
 
 3. Matriz de Estrategia: Ejecuta un mismo job de "Test" simultáneamente en tres versiones diferentes de Python (3.11 y 3.12).

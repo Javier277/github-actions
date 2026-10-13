@@ -1,0 +1,44 @@
+# ============================================================
+# EJERCICIO 3 - Matriz de estrategia (strategy.matrix)
+# ------------------------------------------------------------
+# Objetivo: ejecutar el MISMO job de "Test" en varias versiones
+# de Python a la vez.
+#
+# El enunciado dice "tres versiones" pero solo nombra 3.11 y 3.12,
+# así que añadimos 3.10 para que sean tres.
+#
+# Cómo funciona: GitHub crea una copia del job por cada valor de
+# la matriz y las lanza EN PARALELO. Dentro del job, el valor
+# actual se lee con ${{ matrix.<nombre> }}.
+# ============================================================
+name: "03 - Matriz de estrategia"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    # El nombre incluye la versión para distinguir cada ejecución en la UI
+    name: "Test - Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+
+    strategy:
+      # false = si una versión falla, las demás siguen ejecutándose
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"] # entre comillas: 3.10 sin comillas sería 3.1
+
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4
+
+      - name: "Instalar Python ${{ matrix.python-version }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Ejecutar test"
+        run: |
+          python --version
+          # Test sencillo: comprobamos que Python hace bien una suma
+          python -c "assert 2 + 2 == 4; print('Test OK en Python ${{ matrix.python-version }}')"

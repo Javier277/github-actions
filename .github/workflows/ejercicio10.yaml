@@ -1,0 +1,47 @@
+# ============================================================
+# EJERCICIO 10 - Aprobación manual y despliegue
+# ------------------------------------------------------------
+# Objetivo: dos jobs, "Build" y "Deploy".
+#   - Deploy solo corre si Build termina con éxito
+#   - Deploy solo corre si el evento es manual (workflow_dispatch)
+#
+# Escuchamos también "push" para ver la diferencia:
+#   - push a main       -> Build se ejecuta, Deploy aparece como "skipped"
+#   - lanzado a mano    -> Build y después Deploy
+# ============================================================
+name: "10 - Build y Deploy manual"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Descargar el código"
+        uses: actions/checkout@v4
+
+      - name: "Compilar"
+        run: |
+          echo "Compilando la aplicación..."
+          echo "Build terminado (evento: ${{ github.event_name }})"
+
+  deploy:
+    name: "Deploy"
+    runs-on: ubuntu-latest
+    needs: build # 1ª condición: espera a Build
+    # 2ª condición: success() = Build fue bien (es el valor por defecto,
+    # lo ponemos explícito para que se lea claro) Y el evento es manual.
+    if: success() && github.event_name == 'workflow_dispatch'
+    # Opcional, aprobación "de verdad": si en Settings > Environments creas
+    # el entorno "production" con "Required reviewers", GitHub pausará
+    # este job hasta que alguien pulse "Approve". Descomenta para usarlo:
+    # environment: production
+    steps:
+      - name: "Desplegar"
+        run: |
+          echo "Desplegando en producción..."
+          echo "Lanzado manualmente por: ${{ github.actor }}"
